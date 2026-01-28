@@ -11,6 +11,13 @@ interface Props {
 }
 
 const WorkoutList: React.FC<Props> = ({ workouts, onPlay, onEdit, theme }) => {
+  const formatTotalTime = (workout: Workout) => {
+    const totalSeconds = workout.steps.reduce((acc, s) => acc + (s.duration * s.repeats), 0);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="p-4 space-y-4">
       {workouts.length === 0 ? (
@@ -37,9 +44,9 @@ const WorkoutList: React.FC<Props> = ({ workouts, onPlay, onEdit, theme }) => {
               <div className="flex items-center gap-4">
                 <div className={`${theme.accent} w-1.5 h-12 rounded-full shadow-sm`} style={{ backgroundColor: workout.color }}></div>
                 <div>
-                  <h3 className="font-bold text-lg">{workout.name}</h3>
-                  <p className={`text-xs ${theme.muted}`}>
-                    {workout.steps.length} steps • {Math.round(workout.steps.reduce((acc, s) => acc + (s.duration * s.repeats), 0) / 60)} min
+                  <h3 className="font-bold text-lg">{workout.name || 'Untitled Routine'}</h3>
+                  <p className={`text-xs ${theme.muted} font-medium`}>
+                    {workout.steps.length} steps • {formatTotalTime(workout)} total
                   </p>
                 </div>
               </div>
@@ -50,7 +57,7 @@ const WorkoutList: React.FC<Props> = ({ workouts, onPlay, onEdit, theme }) => {
                 </div>
                 <button 
                   onClick={(e) => {
-                    e.stopPropagation(); // Crucial: Prevents triggering the card's onEdit
+                    e.stopPropagation();
                     onPlay(workout);
                   }}
                   className="p-4 rounded-2xl bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-500/20 transition-all active:scale-90 flex items-center justify-center"
@@ -62,7 +69,6 @@ const WorkoutList: React.FC<Props> = ({ workouts, onPlay, onEdit, theme }) => {
               </div>
             </div>
             
-            {/* Subtle background gradient on hover */}
             <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
           </div>
         ))

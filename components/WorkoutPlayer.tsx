@@ -14,12 +14,12 @@ const WorkoutPlayer: React.FC<Props> = ({ workout, settings, theme, onClose }) =
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [currentRepeat, setCurrentRepeat] = useState(1);
   const [timeLeft, setTimeLeft] = useState(workout.steps[0].duration);
-  // Auto-start enabled: Timer begins counting as soon as the screen is loaded
   const [isActive, setIsActive] = useState(true);
   const [muted, setMuted] = useState(!settings.soundEnabled);
   
   const currentStep = workout.steps[currentStepIdx];
   const progress = ((currentStep.duration - timeLeft) / currentStep.duration) * 100;
+  const timerRef = useRef<number | null>(null);
 
   const speak = useCallback((text: string) => {
     if (!settings.enableTTS || !window.speechSynthesis) return;
@@ -45,44 +45,42 @@ const WorkoutPlayer: React.FC<Props> = ({ workout, settings, theme, onClose }) =
       osc.start();
       osc.stop(context.currentTime + 0.6);
     } catch (e) {
-      console.warn("Audio feedback blocked or failed", e);
+      console.warn("Audio Context blocked", e);
     }
   }, [muted]);
 
-  // Unified TTS: Triggered on every segment transition (step or repeat)
+  // Handle TTS and Round Transition Announcements
   useEffect(() => {
-    if (settings.enableTTS && currentStep) {
-      // Use the requested "Next: " prefix for all announcements
+    if (isActive && currentStep) {
+      const stepName = currentStep.name || `Step ${currentStepIdx + 1}`;
       const roundLabel = currentStep.repeats > 1 ? `, round ${currentRepeat}` : '';
-      speak(`Next: ${currentStep.name}${roundLabel}`);
+      speak(`Next: ${stepName}${roundLabel}`);
     }
-  }, [currentStepIdx, currentRepeat, settings.enableTTS, currentStep, speak]);
+  }, [currentStepIdx, currentRepeat, settings.enableTTS, isActive]);
 
   useEffect(() => {
-    let timer: any;
     if (isActive && timeLeft > 0) {
-      timer = setInterval(() => {
+      timerRef.current = window.setInterval(() => {
         setTimeLeft(prev => prev - 1);
       }, 1000);
     } else if (isActive && timeLeft === 0) {
       playChime();
       if (currentRepeat < currentStep.repeats) {
-        // Move to next repetition of the current step
         setCurrentRepeat(prev => prev + 1);
         setTimeLeft(currentStep.duration);
       } else if (currentStepIdx < workout.steps.length - 1) {
-        // Transition to a brand new unique step
         const nextIdx = currentStepIdx + 1;
         setCurrentStepIdx(nextIdx);
         setCurrentRepeat(1);
         setTimeLeft(workout.steps[nextIdx].duration);
       } else {
-        // Routine finished
         setIsActive(false);
         speak("Workout complete. Well done.");
       }
     }
-    return () => clearInterval(timer);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [isActive, timeLeft, currentStep, currentRepeat, currentStepIdx, workout, playChime, speak]);
 
   const toggleTimer = () => setIsActive(!isActive);
@@ -92,8 +90,7 @@ const WorkoutPlayer: React.FC<Props> = ({ workout, settings, theme, onClose }) =
     setCurrentStepIdx(0);
     setCurrentRepeat(1);
     setTimeLeft(workout.steps[0].duration);
-    // Auto-restart after a brief pause to allow the UI to catch up
-    setTimeout(() => setIsActive(true), 200);
+    setTimeout(() => setIsActive(true), 150);
   };
 
   const skipStep = () => {
@@ -113,34 +110,30 @@ const WorkoutPlayer: React.FC<Props> = ({ workout, settings, theme, onClose }) =
 
   return (
     <div className={`fixed inset-0 z-50 flex flex-col ${theme.bg} ${theme.text}`}>
-      {/* Top Header */}
       <div className="p-4 flex items-center justify-between">
-        <button onClick={onClose} className="p-2 hover:bg-black/10 rounded-full transition-colors" aria-label="Close">
+        <button onClick={onClose} className="p-2 hover:bg-black/10 rounded-full transition-colors" aria-label="Exit">
           <X size={24} />
         </button>
         <div className="text-center flex-1">
           <h2 className="text-lg font-bold truncate max-w-[200px] mx-auto">{workout.name}</h2>
-          <p className={`text-[10px] font-black tracking-widest ${theme.muted}`}>STEP {currentStepIdx + 1} / {workout.steps.length}</p>
+          <p className={`text-[10px] font-black tracking-widest ${theme.muted} uppercase`}>Step {currentStepIdx + 1} / {workout.steps.length}</p>
         </div>
         <button onClick={() => setMuted(!muted)} className="p-2 hover:bg-black/10 rounded-full transition-colors">
           {muted ? <VolumeX size={24} /> : <Volume2 size={24} />}
         </button>
       </div>
 
-      {/* Main Focus Area */}
       <div className="flex-1 flex flex-col items-center justify-center p-6 space-y-12">
-        <div className="w-full max-w-sm flex flex-col gap-3 overflow-hidden">
+        <div className="w-full max-w-sm flex flex-col gap-4">
           {workout.steps.map((step, idx) => {
             const isCurrent = idx === currentStepIdx;
-            // Only render current and immediate neighbors for focus
             if (idx < currentStepIdx - 1 || idx > currentStepIdx + 2) return null;
 
             return (
               <div 
                 key={step.id} 
-                className={`relative overflow-hidden rounded-3xl border transition-all duration-700 ${isCurrent ? 'h-60' : 'h-20'} ${isCurrent ? `border-purple-500/50 ${theme.surface} shadow-2xl` : `${theme.border} opacity-40 scale-95`}`}
+                className={`relative overflow-hidden rounded-[2.5rem] border transition-all duration-700 ${isCurrent ? 'h-64' : 'h-20'} ${isCurrent ? `border-purple-500/50 ${theme.surface} shadow-2xl` : `${theme.border} opacity-40 scale-95`}`}
               >
-                {/* Visual Progress Background */}
                 {isCurrent && (
                   <div 
                     className="absolute inset-0 bg-purple-500/10 origin-left transition-all duration-1000"
@@ -148,23 +141,23 @@ const WorkoutPlayer: React.FC<Props> = ({ workout, settings, theme, onClose }) =
                   ></div>
                 )}
 
-                <div className="relative h-full flex flex-col items-center justify-center px-8">
+                <div className="relative h-full flex flex-col items-center justify-center px-8 text-center">
                    {isCurrent ? (
                      <>
-                      <span className="text-2xl font-light mb-2">{step.name}</span>
+                      <span className="text-2xl font-medium mb-1">{step.name || 'Relax...'}</span>
                       <span className="text-8xl font-black tracking-tighter tabular-nums text-purple-500">
                         {formatTime(timeLeft)}
                       </span>
                       {step.repeats > 1 && (
-                        <div className="mt-4 text-[10px] font-black bg-purple-600 text-white px-4 py-1 rounded-full uppercase tracking-widest shadow-lg">
-                          Round {currentRepeat} of {step.repeats}
+                        <div className="mt-4 text-[10px] font-black bg-purple-600 text-white px-5 py-1.5 rounded-full uppercase tracking-[0.2em]">
+                          Round {currentRepeat} / {step.repeats}
                         </div>
                       )}
                      </>
                    ) : (
-                     <div className="w-full flex justify-between items-center px-2">
-                        <span className="font-bold text-lg">{step.name}</span>
-                        <span className={`text-sm font-medium ${theme.muted}`}>{formatTime(step.duration)}</span>
+                     <div className="w-full flex justify-between items-center opacity-80">
+                        <span className="font-bold text-lg">{step.name || `Step ${idx + 1}`}</span>
+                        <span className={`text-sm font-black ${theme.muted}`}>{formatTime(step.duration)}</span>
                      </div>
                    )}
                 </div>
@@ -173,43 +166,24 @@ const WorkoutPlayer: React.FC<Props> = ({ workout, settings, theme, onClose }) =
           })}
         </div>
 
-        {/* Large Playback Controls */}
-        <div className="flex items-center gap-10">
-          <button 
-            onClick={resetTimer}
-            className={`p-5 rounded-full border ${theme.border} hover:bg-black/5 active:scale-90 transition-all`}
-          >
-            <RotateCcw size={32} />
+        <div className="flex items-center gap-12">
+          <button onClick={resetTimer} className={`p-5 rounded-full border ${theme.border} hover:bg-black/5 active:scale-90 transition-all`}><RotateCcw size={32} /></button>
+          <button onClick={toggleTimer} className={`w-28 h-28 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 ${isActive ? 'bg-zinc-800 text-white shadow-zinc-500/20' : 'bg-purple-600 text-white shadow-purple-500/40'}`}>
+            {isActive ? <Pause size={56} fill="currentColor" /> : <Play size={56} fill="currentColor" className="ml-2" />}
           </button>
-          
-          <button 
-            onClick={toggleTimer}
-            className={`w-28 h-28 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 ${isActive ? 'bg-zinc-800 text-white shadow-zinc-500/20' : 'bg-purple-600 text-white shadow-purple-500/40'}`}
-          >
-            {isActive ? <Pause size={54} fill="currentColor" /> : <Play size={54} fill="currentColor" className="ml-2" />}
-          </button>
-
-          <button 
-            onClick={skipStep}
-            className={`p-5 rounded-full border ${theme.border} hover:bg-black/5 active:scale-90 transition-all`}
-          >
-            <SkipForward size={32} />
-          </button>
+          <button onClick={skipStep} className={`p-5 rounded-full border ${theme.border} hover:bg-black/5 active:scale-90 transition-all`}><SkipForward size={32} /></button>
         </div>
       </div>
 
-      {/* Footer Preview */}
       <div className={`p-8 ${theme.surface} border-t ${theme.border} rounded-t-[40px] shadow-2xl`}>
         <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${theme.muted} mb-3`}>Up Next</p>
         {currentStepIdx < workout.steps.length - 1 ? (
           <div className="flex justify-between items-center">
-            <span className="text-xl font-bold">{workout.steps[currentStepIdx + 1].name}</span>
-            <span className={`text-sm font-bold ${theme.muted}`}>{formatTime(workout.steps[currentStepIdx + 1].duration)}</span>
+            <span className="text-xl font-bold">{workout.steps[currentStepIdx + 1].name || `Step ${currentStepIdx + 2}`}</span>
+            <span className={`text-sm font-black ${theme.muted}`}>{formatTime(workout.steps[currentStepIdx + 1].duration)}</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-purple-500 font-bold italic">
-            Session Conclusion
-          </div>
+          <div className="flex items-center gap-2 text-purple-500 font-bold"><span className="text-xl italic opacity-70">Finish Line</span></div>
         )}
       </div>
     </div>
