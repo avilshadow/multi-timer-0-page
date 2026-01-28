@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Workout } from '../types';
-import { Play, Edit2 } from 'lucide-react';
+import { Play, Edit2, Clock } from 'lucide-react';
 
 interface Props {
   workouts: Workout[];
@@ -15,61 +15,58 @@ const WorkoutList: React.FC<Props> = ({ workouts, onPlay, onEdit, theme }) => {
     const totalSeconds = workout.steps.reduce((acc, s) => acc + (s.duration * s.repeats), 0);
     const mins = Math.floor(totalSeconds / 60);
     const secs = totalSeconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
     <div className="p-4 space-y-4">
       {workouts.length === 0 ? (
         <div className={`flex flex-col items-center justify-center py-20 ${theme.muted}`}>
-          <p className="text-lg">No routines yet.</p>
-          <p className="text-sm">Click + to create your first flow.</p>
+          <div className="mb-4 opacity-20">
+            <Clock size={64} />
+          </div>
+          <p className="text-xl font-bold">No flows yet</p>
+          <p className="text-sm opacity-60">Tap + to create your first yoga sequence</p>
         </div>
       ) : (
         workouts.map((workout) => (
           <div 
             key={workout.id}
             onClick={() => onEdit(workout)}
-            className={`group relative overflow-hidden rounded-2xl border cursor-pointer ${theme.border} ${theme.surface} hover:shadow-xl hover:border-purple-400/50 transition-all duration-300 active:scale-[0.99] focus-within:ring-2 focus-within:ring-purple-500 outline-none`}
+            className={`group relative overflow-hidden rounded-[2.5rem] border-2 cursor-pointer ${theme.border} ${theme.surface} hover:shadow-2xl hover:border-purple-400/50 transition-all duration-300 active:scale-[0.98] outline-none`}
             role="button"
-            aria-label={`Edit ${workout.name}`}
             tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                onEdit(workout);
-              }
-            }}
           >
-            <div className="p-5 flex items-center justify-between relative z-10">
-              <div className="flex items-center gap-4">
-                <div className={`${theme.accent} w-1.5 h-12 rounded-full shadow-sm`} style={{ backgroundColor: workout.color }}></div>
+            <div className="p-6 flex items-center justify-between relative z-10">
+              <div className="flex items-center gap-5">
+                <div 
+                  className="w-1.5 h-14 rounded-full shadow-lg" 
+                  style={{ backgroundColor: workout.color }}
+                ></div>
                 <div>
-                  <h3 className="font-bold text-lg">{workout.name || 'Untitled Routine'}</h3>
-                  <p className={`text-xs ${theme.muted} font-medium`}>
-                    {workout.steps.length} steps • {formatTotalTime(workout)} total
-                  </p>
+                  <h3 className="font-black text-xl leading-tight">{workout.name || 'Untitled Routine'}</h3>
+                  <div className={`flex items-center gap-3 mt-1 text-xs font-bold uppercase tracking-widest ${theme.muted}`}>
+                    <span>{workout.steps.length} steps</span>
+                    <span className="w-1 h-1 rounded-full bg-current opacity-30"></span>
+                    <span className="flex items-center gap-1">
+                      <Clock size={12} strokeWidth={3} />
+                      {formatTotalTime(workout)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity ${theme.muted}`}>
-                  <Edit2 size={16} />
-                </div>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPlay(workout);
-                  }}
-                  className="p-4 rounded-2xl bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-500/20 transition-all active:scale-90 flex items-center justify-center"
-                  title="Run Workout"
-                  aria-label={`Run ${workout.name}`}
-                >
-                  <Play size={20} fill="currentColor" />
-                </button>
-              </div>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPlay(workout);
+                }}
+                className="p-5 rounded-[2rem] bg-purple-600 text-white hover:bg-purple-700 shadow-xl shadow-purple-500/30 transition-all active:scale-90 flex items-center justify-center"
+                aria-label={`Start ${workout.name}`}
+              >
+                <Play size={24} fill="currentColor" />
+              </button>
             </div>
-            
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
           </div>
         ))
       )}
