@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Workout, TimerStep } from '../types';
-import { Save, Trash2, Plus, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Save, Trash2, Plus, ChevronUp, ChevronDown, X, Clock } from 'lucide-react';
 
 interface Props {
   workout: Workout | null;
@@ -14,11 +14,13 @@ interface Props {
 const WorkoutEditor: React.FC<Props> = ({ workout, onSave, onDelete, onCancel, theme }) => {
   const [name, setName] = useState(workout?.name || '');
   const [color, setColor] = useState(workout?.color || '#a78bfa');
+  // Ensuring initial step has an empty name
   const [steps, setSteps] = useState<TimerStep[]>(workout?.steps || [
     { id: Math.random().toString(), name: '', duration: 30, repeats: 1 }
   ]);
 
   const addStep = () => {
+    // New steps strictly start with an empty string name
     setSteps([...steps, { id: Math.random().toString(), name: '', duration: 30, repeats: 1 }]);
   };
 
@@ -52,26 +54,27 @@ const WorkoutEditor: React.FC<Props> = ({ workout, onSave, onDelete, onCancel, t
   };
 
   return (
-    <div className={`p-4 pb-20 space-y-6 ${theme.text}`}>
+    <div className={`p-4 pb-24 space-y-6 ${theme.text}`}>
+      {/* Routine Metadata */}
       <div className="space-y-4">
         <div>
-          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${theme.muted}`}>Routine Name</label>
+          <label className={`block text-[10px] font-black uppercase tracking-[0.2em] mb-2 ${theme.muted}`}>Routine Title</label>
           <input 
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className={`w-full p-4 rounded-xl ${theme.surface} border ${theme.border} focus:ring-2 focus:ring-purple-500 outline-none transition-all`}
-            placeholder="e.g., Daily Yoga Flow"
+            className={`w-full p-4 rounded-2xl ${theme.surface} border ${theme.border} focus:ring-2 focus:ring-purple-500 outline-none transition-all font-bold text-lg`}
+            placeholder="e.g., Vinyasa Flow"
           />
         </div>
 
         <div>
-          <label className={`block text-xs font-bold uppercase tracking-wider mb-2 ${theme.muted}`}>Theme Color</label>
-          <div className="flex gap-2">
-            {['#a78bfa', '#818cf8', '#f472b6', '#34d399', '#fbbf24'].map(c => (
+          <label className={`block text-[10px] font-black uppercase tracking-[0.2em] mb-2 ${theme.muted}`}>Theme Accent</label>
+          <div className="flex gap-3">
+            {['#a78bfa', '#818cf8', '#f472b6', '#34d399', '#fbbf24', '#f87171'].map(c => (
               <button 
                 key={c}
                 onClick={() => setColor(c)}
-                className={`w-10 h-10 rounded-full border-2 transition-all ${color === c ? 'border-white ring-2 ring-purple-500' : 'border-transparent'}`}
+                className={`w-10 h-10 rounded-full border-2 transition-all active:scale-90 ${color === c ? 'border-white ring-4 ring-purple-500/30' : 'border-transparent opacity-60'}`}
                 style={{ backgroundColor: c }}
               />
             ))}
@@ -79,74 +82,78 @@ const WorkoutEditor: React.FC<Props> = ({ workout, onSave, onDelete, onCancel, t
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <label className={`block text-xs font-bold uppercase tracking-wider ${theme.muted}`}>Steps & Timers</label>
+      {/* Steps List */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-1">
+          <label className={`block text-[10px] font-black uppercase tracking-[0.2em] ${theme.muted}`}>Sequence Steps</label>
           <button 
             onClick={addStep}
-            className="text-xs font-bold text-purple-500 flex items-center gap-1 hover:underline"
+            className="text-xs font-black text-purple-500 flex items-center gap-1.5 hover:opacity-80 transition-opacity bg-purple-500/10 px-3 py-1.5 rounded-full"
           >
-            <Plus size={14} /> ADD STEP
+            <Plus size={14} strokeWidth={3} /> ADD NEW
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {steps.map((step, idx) => {
             const mins = Math.floor(step.duration / 60);
             const secs = step.duration % 60;
 
             return (
-              <div key={step.id} className={`p-4 rounded-2xl ${theme.surface} border ${theme.border} space-y-4 shadow-sm group`}>
+              <div key={step.id} className={`p-5 rounded-[2rem] ${theme.surface} border ${theme.border} space-y-5 shadow-sm hover:shadow-md transition-shadow`}>
                 <div className="flex items-start justify-between gap-3">
-                  <input 
-                    value={step.name}
-                    onChange={(e) => updateStep(step.id, { name: e.target.value })}
-                    className="bg-transparent font-semibold flex-1 outline-none border-b border-transparent focus:border-purple-500"
-                    placeholder="Pose/Step name (e.g. Inhale)"
-                  />
-                  <div className="flex gap-1">
-                    <button onClick={() => moveStep(idx, 'up')} className={`p-1 rounded hover:bg-black/5 ${theme.muted}`} disabled={idx === 0}><ChevronUp size={16} /></button>
-                    <button onClick={() => moveStep(idx, 'down')} className={`p-1 rounded hover:bg-black/5 ${theme.muted}`} disabled={idx === steps.length - 1}><ChevronDown size={16} /></button>
-                    <button onClick={() => removeStep(step.id)} className="p-1 rounded hover:bg-red-50 text-red-400"><X size={16} /></button>
+                  <div className="flex-1">
+                    <input 
+                      value={step.name}
+                      onChange={(e) => updateStep(step.id, { name: e.target.value })}
+                      className="bg-transparent font-bold text-xl w-full outline-none border-b-2 border-transparent focus:border-purple-500 transition-colors py-1"
+                      placeholder="Step name..."
+                    />
+                  </div>
+                  <div className="flex items-center bg-black/5 rounded-xl p-1">
+                    <button onClick={() => moveStep(idx, 'up')} className={`p-1.5 rounded-lg hover:bg-white/50 transition-colors ${idx === 0 ? 'opacity-20 pointer-events-none' : ''}`}><ChevronUp size={18} /></button>
+                    <button onClick={() => moveStep(idx, 'down')} className={`p-1.5 rounded-lg hover:bg-white/50 transition-colors ${idx === steps.length - 1 ? 'opacity-20 pointer-events-none' : ''}`}><ChevronDown size={18} /></button>
+                    <div className="w-px h-4 bg-black/10 mx-1"></div>
+                    <button onClick={() => removeStep(step.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition-colors"><Trash2 size={18} /></button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <span className={`text-[10px] font-bold ${theme.muted} block mb-1`}>MINUTES</span>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="relative">
+                    <span className={`text-[9px] font-black ${theme.muted} block mb-2 uppercase tracking-tighter`}>Minutes</span>
                     <input 
                       type="number" 
                       min="0"
                       value={mins}
                       onChange={(e) => {
-                        const val = parseInt(e.target.value) || 0;
+                        const val = Math.max(0, parseInt(e.target.value) || 0);
                         updateStep(step.id, { duration: (val * 60) + secs });
                       }}
-                      className={`w-full p-2 rounded-lg ${theme.bg} border ${theme.border} outline-none focus:ring-1 focus:ring-purple-500`}
+                      className={`w-full p-3 rounded-2xl ${theme.bg} border ${theme.border} outline-none focus:ring-2 focus:ring-purple-500 font-bold text-center tabular-nums`}
                     />
                   </div>
-                  <div>
-                    <span className={`text-[10px] font-bold ${theme.muted} block mb-1`}>SECONDS</span>
+                  <div className="relative">
+                    <span className={`text-[9px] font-black ${theme.muted} block mb-2 uppercase tracking-tighter`}>Seconds</span>
                     <input 
                       type="number" 
                       min="0"
                       max="59"
                       value={secs}
                       onChange={(e) => {
-                        const val = Math.min(59, parseInt(e.target.value) || 0);
+                        const val = Math.max(0, Math.min(59, parseInt(e.target.value) || 0));
                         updateStep(step.id, { duration: (mins * 60) + val });
                       }}
-                      className={`w-full p-2 rounded-lg ${theme.bg} border ${theme.border} outline-none focus:ring-1 focus:ring-purple-500`}
+                      className={`w-full p-3 rounded-2xl ${theme.bg} border ${theme.border} outline-none focus:ring-2 focus:ring-purple-500 font-bold text-center tabular-nums`}
                     />
                   </div>
-                  <div>
-                    <span className={`text-[10px] font-bold ${theme.muted} block mb-1`}>REPEATS</span>
+                  <div className="relative">
+                    <span className={`text-[9px] font-black ${theme.muted} block mb-2 uppercase tracking-tighter`}>Repeats</span>
                     <input 
                       type="number" 
                       min="1"
                       value={step.repeats}
                       onChange={(e) => updateStep(step.id, { repeats: Math.max(1, parseInt(e.target.value) || 1) })}
-                      className={`w-full p-2 rounded-lg ${theme.bg} border ${theme.border} outline-none focus:ring-1 focus:ring-purple-500`}
+                      className={`w-full p-3 rounded-2xl ${theme.bg} border ${theme.border} outline-none focus:ring-2 focus:ring-purple-500 font-bold text-center tabular-nums`}
                     />
                   </div>
                 </div>
@@ -156,20 +163,23 @@ const WorkoutEditor: React.FC<Props> = ({ workout, onSave, onDelete, onCancel, t
         </div>
       </div>
 
-      <div className="flex gap-3 pt-4 sticky bottom-4 z-20">
+      {/* Save / Delete Actions */}
+      <div className="flex gap-4 pt-6 sticky bottom-4 z-20">
         {workout && (
           <button 
             onClick={() => onDelete(workout.id)}
-            className="flex-1 p-4 rounded-2xl border border-red-200 text-red-500 font-bold bg-white/80 backdrop-blur-md hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+            className="p-5 rounded-3xl border-2 border-red-200 text-red-500 font-black bg-white/90 backdrop-blur-lg hover:bg-red-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+            title="Delete Routine"
           >
-            <Trash2 size={20} /> DELETE
+            <Trash2 size={24} />
           </button>
         )}
         <button 
           onClick={handleSave}
-          className={`p-4 rounded-2xl bg-purple-600 text-white font-bold hover:bg-purple-700 shadow-xl shadow-purple-500/20 transition-all flex items-center justify-center gap-2 ${workout ? 'flex-[2]' : 'w-full'}`}
+          className={`p-5 rounded-3xl bg-purple-600 text-white font-black hover:bg-purple-700 shadow-2xl shadow-purple-500/40 transition-all active:scale-95 flex items-center justify-center gap-3 ${workout ? 'flex-1' : 'w-full'}`}
         >
-          <Save size={20} /> SAVE ROUTINE
+          <Save size={24} />
+          <span>SAVE ROUTINE</span>
         </button>
       </div>
     </div>
