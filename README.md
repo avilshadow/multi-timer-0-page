@@ -1,20 +1,40 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# ZenFlow Yoga Timer
 
-# Run and deploy your AI Studio app
+A beautiful, customizable workout and yoga timer web application generated using an AI coding assistant.
+Build interactive timer sequences with Text-to-Speech announcements, customizable themes, and a clean, modern UI.
 
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/drive/11TRL_zryRLZfOqPTEd6wJkDeTDMWwvZH
-
-## Run Locally
+## Local Development
 
 **Prerequisites:**  Node.js
 
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+2. **Run the local development server:**
+   ```bash
+   npm run dev
+   ```
+
+## Production Build & Preview
+
+This app uses Vite for blazing fast builds.
+
+1. **Compile the application for production:**
+   ```bash
+   npm run build
+   ```
+   *This outputs optimized static files to the `dist` directory.*
+
+2. **Preview the compiled production build locally:**
+   ```bash
+   npm run preview
+   ```
+
+## Features
+
+- **Custom Workout Sequences**: Create multi-step workouts with custom durations.
+- **Audio Announcements**: Text-to-Speech announces each step so you don't even have to look at the screen.
+- **Screen Wake Lock**: Your screen stays on while the timer is running!
+- **Auto-Progression**: Automatically transitions to the next exercise.
