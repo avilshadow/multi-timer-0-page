@@ -16,16 +16,59 @@ const WorkoutPlayer: React.FC<Props> = ({ workout, settings, theme, onClose }) =
   const [timeLeft, setTimeLeft] = useState(workout.steps[0].duration);
   const [isActive, setIsActive] = useState(true);
   const [muted, setMuted] = useState(!settings.soundEnabled);
-  
+
   const currentStep = workout.steps[currentStepIdx];
   const progress = ((currentStep.duration - timeLeft) / currentStep.duration) * 100;
   const timerRef = useRef<number | null>(null);
+  const wakeLockRef = useRef<any>(null);
+
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.warn(`Wake Lock error: ${err}`);
+      }
+    };
+
+    const releaseWakeLock = async () => {
+      if (wakeLockRef.current) {
+        try {
+          await wakeLockRef.current.release();
+          wakeLockRef.current = null;
+        } catch (err) {
+          console.warn(`Wake Lock release error: ${err}`);
+        }
+      }
+    };
+
+    if (isActive) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isActive) {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [isActive]);
 
   const speak = useCallback((text: string) => {
     if (!settings.enableTTS || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.0; 
+    utterance.rate = 1.0;
     window.speechSynthesis.speak(utterance);
   }, [settings.enableTTS]);
 
@@ -130,20 +173,20 @@ const WorkoutPlayer: React.FC<Props> = ({ workout, settings, theme, onClose }) =
             if (idx < currentStepIdx - 1 || idx > currentStepIdx + 2) return null;
 
             return (
-              <div 
-                key={step.id} 
+              <div
+                key={step.id}
                 className={`relative overflow-hidden rounded-[2.5rem] border transition-all duration-700 ${isCurrent ? 'h-64' : 'h-20'} ${isCurrent ? `border-purple-500/50 ${theme.surface} shadow-2xl` : `${theme.border} opacity-40 scale-95`}`}
               >
                 {isCurrent && (
-                  <div 
+                  <div
                     className="absolute inset-0 bg-purple-500/10 origin-left transition-all duration-1000"
                     style={{ width: `${progress}%` }}
                   ></div>
                 )}
 
                 <div className="relative h-full flex flex-col items-center justify-center px-8 text-center">
-                   {isCurrent ? (
-                     <>
+                  {isCurrent ? (
+                    <>
                       <span className="text-2xl font-medium mb-1">{step.name || 'Relax...'}</span>
                       <span className="text-8xl font-black tracking-tighter tabular-nums text-purple-500">
                         {formatTime(timeLeft)}
@@ -153,13 +196,13 @@ const WorkoutPlayer: React.FC<Props> = ({ workout, settings, theme, onClose }) =
                           Round {currentRepeat} / {step.repeats}
                         </div>
                       )}
-                     </>
-                   ) : (
-                     <div className="w-full flex justify-between items-center opacity-80">
-                        <span className="font-bold text-lg">{step.name || `Step ${idx + 1}`}</span>
-                        <span className={`text-sm font-black ${theme.muted}`}>{formatTime(step.duration)}</span>
-                     </div>
-                   )}
+                    </>
+                  ) : (
+                    <div className="w-full flex justify-between items-center opacity-80">
+                      <span className="font-bold text-lg">{step.name || `Step ${idx + 1}`}</span>
+                      <span className={`text-sm font-black ${theme.muted}`}>{formatTime(step.duration)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             );
